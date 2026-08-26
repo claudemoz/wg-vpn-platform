@@ -1,7 +1,34 @@
 package app
 
-func New() *App {
-	return &App{}
+import (
+	"backend/internal/config"
+	"backend/internal/database"
+	"log"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type App struct {
+	Router *gin.Engine
+	DB    *gorm.DB
 }
 
-type App struct{}
+func New(cfg *config.Config) *App {
+	db, err := database.Connect(cfg)
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+	
+	if cfg.App.Env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	router := gin.Default()
+	RegisterRoutes(router)
+	
+	return &App{
+		Router: router,
+		DB: db,
+	}
+}
