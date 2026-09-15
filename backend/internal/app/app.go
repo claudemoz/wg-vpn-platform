@@ -25,10 +25,10 @@ func New(cfg *config.Config) *App {
 	}
 
 	router := gin.Default()
-	RegisterRoutes(router)
-	
+	RegisterRoutes(router, db, cfg)
+
 	return &App{
 		Router: router,
-		DB: db,
+		DB:     db,
 	}
 }

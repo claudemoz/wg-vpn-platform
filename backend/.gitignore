@@ -1,0 +1,17 @@
+# Binaries
+bin/
+tmp/
+*.exe
+*.test
+*.out
+
+# Air
+build-errors.log
+
+# Env
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/

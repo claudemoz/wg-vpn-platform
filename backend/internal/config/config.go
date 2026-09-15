@@ -41,7 +41,7 @@ func Load() *Config {
 	}
 
 	return &Config{
-		App:      AppConfig{
+		App: AppConfig{
 			Env:  getEnv("APP_ENV", "development"),
 			Port: getEnv("APP_PORT", "8080"),
 		},
@@ -50,7 +50,7 @@ func Load() *Config {
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
-			Name:     getEnv("DB_NAME", "stoogo"),
+			Name:     getEnv("DB_NAME", "wg-vpn-platform"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 			TimeZone: getEnv("DB_TIMEZONE", "UTC"),
 		},
@@ -67,7 +67,6 @@ func getEnv(key, fallback string) string {
 	}
 	return fallback
 }
-
 
 func getEnvAsInt(key string, fallback int) int {
 	if v, ok := os.LookupEnv(key); ok && v != "" {
