@@ -4,7 +4,7 @@ import "time"
 
 func ToResponse(u User) UserResponse {
 	return UserResponse{
-		ID:        u.ID,
+		ID:        u.ID.String(),
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Email:     u.Email,

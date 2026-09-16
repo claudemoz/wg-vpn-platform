@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -34,9 +35,9 @@ func (r *Repository) FindAll() ([]User, error) {
 	return users, nil
 }
 
-func (r *Repository) FindByID(id uint) (*User, error) {
+func (r *Repository) FindByID(id uuid.UUID) (*User, error) {
 	var user User
-	if err := r.db.First(&user, id).Error; err != nil {
+	if err := r.db.First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperrors.NewNotFound("user not found")
 		}
@@ -66,7 +67,7 @@ func (r *Repository) Update(user *User) error {
 	return nil
 }
 
-func (r *Repository) Delete(id uint) error {
+func (r *Repository) Delete(id uuid.UUID) error {
 	result := r.db.Delete(&User{}, id)
 	if result.Error != nil {
 		return result.Error

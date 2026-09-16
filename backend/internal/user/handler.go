@@ -3,9 +3,9 @@ package user
 import (
 	apperrors "backend/pkg/errors"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -47,7 +47,7 @@ func (h *Handler) GetMe(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.GetByID(userID.(uint))
+	user, err := h.service.GetByID(userID.(uuid.UUID))
 	if err != nil {
 		apperrors.Handle(c, err)
 		return
@@ -89,7 +89,7 @@ func (h *Handler) UpdateMe(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.Update(userID.(uint), req)
+	user, err := h.service.Update(userID.(uuid.UUID), req)
 	if err != nil {
 		apperrors.Handle(c, err)
 		return
@@ -111,10 +111,10 @@ func (h *Handler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func parseID(raw string) (uint, error) {
-	id, err := strconv.ParseUint(raw, 10, 64)
+func parseID(raw string) (uuid.UUID, error) {
+	id, err := uuid.Parse(raw)
 	if err != nil {
-		return 0, apperrors.NewInvalidInput("invalid user id")
+		return uuid.Nil, apperrors.NewInvalidInput("invalid user id")
 	}
-	return uint(id), nil
+	return id, nil
 }

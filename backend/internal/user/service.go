@@ -3,6 +3,7 @@ package user
 import (
 	apperrors "backend/pkg/errors"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,7 +23,7 @@ func (s *Service) GetAll() ([]UserResponse, error) {
 	return ToResponseList(users), nil
 }
 
-func (s *Service) GetByID(id uint) (UserResponse, error) {
+func (s *Service) GetByID(id uuid.UUID) (UserResponse, error) {
 	user, err := s.repo.FindByID(id)
 	if err != nil {
 		return UserResponse{}, err
@@ -34,7 +35,7 @@ func (s *Service) GetByEmail(email string) (*User, error) {
 	return s.repo.FindByEmail(email)
 }
 
-func (s *Service) Update(id uint, req UpdateUserRequest) (UserResponse, error) {
+func (s *Service) Update(id uuid.UUID, req UpdateUserRequest) (UserResponse, error) {
 	user, err := s.repo.FindByID(id)
 	if err != nil {
 		return UserResponse{}, err
@@ -66,7 +67,7 @@ func (s *Service) Update(id uint, req UpdateUserRequest) (UserResponse, error) {
 	return ToResponse(*user), nil
 }
 
-func (s *Service) Delete(id uint) error {
+func (s *Service) Delete(id uuid.UUID) error {
 	return s.repo.Delete(id)
 }
 

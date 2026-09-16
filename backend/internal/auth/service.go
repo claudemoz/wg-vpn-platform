@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -23,8 +24,8 @@ func NewService(userService *user.Service, jwtCfg config.JWTConfig) *Service {
 }
 
 type Claims struct {
-	UserID uint   `json:"user_id"`
-	Email  string `json:"email"`
+	UserID uuid.UUID `json:"user_id"`
+	Email  string    `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -86,7 +87,7 @@ func (s *Service) ValidateToken(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-func (s *Service) generateToken(userID uint, email string) (string, error) {
+func (s *Service) generateToken(userID uuid.UUID, email string) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID: userID,
