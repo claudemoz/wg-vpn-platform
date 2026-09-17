@@ -1,15 +1,21 @@
 package server
 
 import (
+	"backend/internal/wireguard"
+	apperrors "backend/pkg/errors"
+
 	"github.com/google/uuid"
 )
 
 type Service struct {
-	repo *Repository
+	repo          *Repository
+	defaultSubnet string
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+// NewService creates the server service. defaultSubnet is used when a server is
+// created without an explicit subnet.
+func NewService(repo *Repository, defaultSubnet string) *Service {
+	return &Service{repo: repo, defaultSubnet: defaultSubnet}
 }
 
 func (s *Service) GetAll() ([]ServerResponse, error) {
@@ -29,6 +35,18 @@ func (s *Service) GetByID(id uuid.UUID) (ServerResponse, error) {
 }
 
 func (s *Service) Create(req CreateServerRequest) (ServerResponse, error) {
+	if err := wireguard.ValidateKey(req.WGPublicKey); err != nil {
+		return ServerResponse{}, apperrors.NewInvalidInput("invalid wg_public_key")
+	}
+
+	subnet := req.Subnet
+	if subnet == "" {
+		subnet = s.defaultSubnet
+	}
+	if err := validateSubnet(subnet); err != nil {
+		return ServerResponse{}, err
+	}
+
 	maxPeers := req.MaxPeers
 	if maxPeers == 0 {
 		maxPeers = 100
@@ -45,6 +63,7 @@ func (s *Service) Create(req CreateServerRequest) (ServerResponse, error) {
 		PublicEndpoint: req.PublicEndpoint,
 		WGPublicKey:    req.WGPublicKey,
 		GRPCEndpoint:   req.GRPCEndpoint,
+		Subnet:         subnet,
 		MaxPeers:       maxPeers,
 		CurrentPeers:   0,
 		IsActive:       isActive,
@@ -72,10 +91,19 @@ func (s *Service) Update(id uuid.UUID, req UpdateServerRequest) (ServerResponse,
 		server.PublicEndpoint = *req.PublicEndpoint
 	}
 	if req.WGPublicKey != nil {
+		if err := wireguard.ValidateKey(*req.WGPublicKey); err != nil {
+			return ServerResponse{}, apperrors.NewInvalidInput("invalid wg_public_key")
+		}
 		server.WGPublicKey = *req.WGPublicKey
 	}
 	if req.GRPCEndpoint != nil {
 		server.GRPCEndpoint = *req.GRPCEndpoint
+	}
+	if req.Subnet != nil {
+		if err := validateSubnet(*req.Subnet); err != nil {
+			return ServerResponse{}, err
+		}
+		server.Subnet = *req.Subnet
 	}
 	if req.MaxPeers != nil {
 		server.MaxPeers = *req.MaxPeers
@@ -100,4 +128,11 @@ func (s *Service) Delete(id uuid.UUID) error {
 func (s *Service) Exists(id uuid.UUID) error {
 	_, err := s.repo.FindByID(id)
 	return err
+}
+
+func validateSubnet(subnet string) error {
+	if _, err := wireguard.NewPool(subnet); err != nil {
+		return apperrors.NewInvalidInput("invalid subnet: " + err.Error())
+	}
+	return nil
 }

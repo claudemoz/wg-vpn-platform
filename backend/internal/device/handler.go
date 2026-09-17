@@ -61,6 +61,24 @@ func (h *Handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, device)
 }
 
+// Config returns the wg-quick client configuration as plain text.
+func (h *Handler) Config(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		apperrors.Handle(c, err)
+		return
+	}
+
+	cfg, err := h.service.ClientConfig(id)
+	if err != nil {
+		apperrors.Handle(c, err)
+		return
+	}
+
+	c.Header("Content-Disposition", `attachment; filename="wg-`+id.String()[:8]+`.conf"`)
+	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(cfg))
+}
+
 func (h *Handler) Update(c *gin.Context) {
 	id, err := parseID(c.Param("id"))
 	if err != nil {

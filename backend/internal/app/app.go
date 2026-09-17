@@ -7,6 +7,7 @@ import (
 	"backend/internal/device"
 	"backend/internal/user"
 	vpnserver "backend/internal/vpn-server"
+	"backend/internal/wireguard"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,16 @@ func New(cfg *config.Config) *App {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	wgSettings, err := wireguard.NewSettings(
+		cfg.WireGuard.Subnet,
+		cfg.WireGuard.DNS,
+		cfg.WireGuard.AllowedIPs,
+		cfg.WireGuard.Keepalive,
+	)
+	if err != nil {
+		log.Fatalf("invalid wireguard configuration: %v", err)
+	}
+
 	// Repositories
 	userRepo := user.NewRepository(db)
 	serverRepo := vpnserver.NewRepository(db)
@@ -35,8 +46,8 @@ func New(cfg *config.Config) *App {
 
 	// Services
 	userService := user.NewService(userRepo)
-	serverService := vpnserver.NewService(serverRepo)
-	deviceService := device.NewService(deviceRepo, serverService)
+	serverService := vpnserver.NewService(serverRepo, cfg.WireGuard.Subnet)
+	deviceService := device.NewService(deviceRepo, serverService, wgSettings)
 	authService := auth.NewService(userService, cfg.JWT)
 
 	// Handlers

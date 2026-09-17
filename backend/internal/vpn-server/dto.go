@@ -6,8 +6,11 @@ type CreateServerRequest struct {
 	PublicEndpoint string `json:"public_endpoint" binding:"required,max=255"`
 	WGPublicKey    string `json:"wg_public_key"   binding:"required,max=64"`
 	GRPCEndpoint   string `json:"grpc_endpoint"   binding:"required,max=255"`
-	MaxPeers       int    `json:"max_peers"       binding:"omitempty,min=1"`
-	IsActive       *bool  `json:"is_active"`
+	// Subnet is the CIDR pool used to assign device IPs on this server.
+	// Defaults to WG_DEFAULT_SUBNET when omitted.
+	Subnet   string `json:"subnet"    binding:"omitempty,cidr,max=43"`
+	MaxPeers int    `json:"max_peers" binding:"omitempty,min=1"`
+	IsActive *bool  `json:"is_active"`
 }
 
 type UpdateServerRequest struct {
@@ -16,6 +19,7 @@ type UpdateServerRequest struct {
 	PublicEndpoint *string `json:"public_endpoint" binding:"omitempty,max=255"`
 	WGPublicKey    *string `json:"wg_public_key"   binding:"omitempty,max=64"`
 	GRPCEndpoint   *string `json:"grpc_endpoint"   binding:"omitempty,max=255"`
+	Subnet         *string `json:"subnet"          binding:"omitempty,cidr,max=43"`
 	MaxPeers       *int    `json:"max_peers"       binding:"omitempty,min=1"`
 	CurrentPeers   *int    `json:"current_peers"   binding:"omitempty,min=0"`
 	IsActive       *bool   `json:"is_active"`
@@ -28,6 +32,7 @@ type ServerResponse struct {
 	PublicEndpoint string `json:"public_endpoint"`
 	WGPublicKey    string `json:"wg_public_key"`
 	GRPCEndpoint   string `json:"grpc_endpoint"`
+	Subnet         string `json:"subnet"`
 	MaxPeers       int    `json:"max_peers"`
 	CurrentPeers   int    `json:"current_peers"`
 	IsActive       bool   `json:"is_active"`

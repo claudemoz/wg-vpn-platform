@@ -20,7 +20,7 @@ func NewRepository(db *gorm.DB) *Repository {
 func (r *Repository) Create(device *Device) error {
 	if err := r.db.Create(device).Error; err != nil {
 		if isUniqueViolation(err) {
-			return apperrors.NewConflict("public_key or assigned_ip already in use")
+			return apperrors.NewConflict("public_key already in use, or assigned_ip already taken on this server")
 		}
 		return err
 	}
@@ -46,10 +46,24 @@ func (r *Repository) FindByID(id uuid.UUID) (*Device, error) {
 	return &device, nil
 }
 
+// FindAssignedIPsByServer returns every IP assigned on a server, including
+// soft-deleted devices, because the unique constraint still applies to them.
+func (r *Repository) FindAssignedIPsByServer(serverID uuid.UUID) ([]string, error) {
+	var ips []string
+	err := r.db.Unscoped().
+		Model(&Device{}).
+		Where("server_id = ?", serverID).
+		Pluck("assigned_ip", &ips).Error
+	if err != nil {
+		return nil, err
+	}
+	return ips, nil
+}
+
 func (r *Repository) Update(device *Device) error {
 	if err := r.db.Save(device).Error; err != nil {
 		if isUniqueViolation(err) {
-			return apperrors.NewConflict("public_key or assigned_ip already in use")
+			return apperrors.NewConflict("public_key already in use, or assigned_ip already taken on this server")
 		}
 		return err
 	}

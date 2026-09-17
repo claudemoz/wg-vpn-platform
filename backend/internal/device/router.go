@@ -8,6 +8,7 @@ func RegisterRoutes(rg *gin.RouterGroup, handler *Handler) {
 	devices.GET("/list", handler.List)
 	devices.POST("", handler.Create)
 	devices.GET("/:id", handler.Get)
+	devices.GET("/:id/config", handler.Config)
 	devices.PUT("/:id", handler.Update)
 	devices.DELETE("/:id", handler.Delete)
 }

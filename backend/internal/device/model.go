@@ -14,10 +14,10 @@ func (Device) TableName() string {
 type Device struct {
 	ID            uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	UserID        uuid.UUID      `gorm:"column:user_id;type:uuid;not null;index"                  json:"user_id"`
-	ServerID      uuid.UUID      `gorm:"column:server_id;type:uuid;not null;index"                json:"server_id"`
-	Name          string         `gorm:"column:name;size:100;not null"                            json:"name"`
-	PublicKey     string         `gorm:"column:public_key;size:64;not null;uniqueIndex"           json:"public_key"`
-	AssignedIP    string         `gorm:"column:assigned_ip;size:45;not null;uniqueIndex"          json:"assigned_ip"`
+	ServerID      uuid.UUID      `gorm:"column:server_id;type:uuid;not null;index;uniqueIndex:idx_device_server_assigned_ip" json:"server_id"`
+	Name          string         `gorm:"column:name;size:100;not null"                                                        json:"name"`
+	PublicKey     string         `gorm:"column:public_key;size:64;not null;uniqueIndex"                                       json:"public_key"`
+	AssignedIP    string         `gorm:"column:assigned_ip;size:45;not null;uniqueIndex:idx_device_server_assigned_ip"        json:"assigned_ip"`
 	LastHandshake *time.Time     `gorm:"column:last_handshake"                                    json:"last_handshake,omitempty"`
 	RevokedAt     *time.Time     `gorm:"column:revoked_at;index"                                  json:"revoked_at,omitempty"`
 	CreatedAt     time.Time      `gorm:"column:created_at"                                        json:"created_at"`

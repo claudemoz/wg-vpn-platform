@@ -18,6 +18,7 @@ type Server struct {
 	PublicEndpoint string         `gorm:"column:public_endpoint;size:255;not null"                json:"public_endpoint"`
 	WGPublicKey    string         `gorm:"column:wg_public_key;size:64;not null;uniqueIndex"       json:"wg_public_key"`
 	GRPCEndpoint   string         `gorm:"column:grpc_endpoint;size:255;not null"                  json:"grpc_endpoint"`
+	Subnet         string         `gorm:"column:subnet;size:43;not null"                          json:"subnet"`
 	MaxPeers       int            `gorm:"column:max_peers;not null;default:100"                   json:"max_peers"`
 	CurrentPeers   int            `gorm:"column:current_peers;not null;default:0"                 json:"current_peers"`
 	IsActive       bool           `gorm:"column:is_active;not null;default:true;index"            json:"is_active"`

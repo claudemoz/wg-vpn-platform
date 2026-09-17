@@ -10,6 +10,7 @@ func ToResponse(s Server) ServerResponse {
 		PublicEndpoint: s.PublicEndpoint,
 		WGPublicKey:    s.WGPublicKey,
 		GRPCEndpoint:   s.GRPCEndpoint,
+		Subnet:         s.Subnet,
 		MaxPeers:       s.MaxPeers,
 		CurrentPeers:   s.CurrentPeers,
 		IsActive:       s.IsActive,

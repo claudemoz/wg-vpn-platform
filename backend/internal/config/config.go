@@ -29,10 +29,18 @@ type JWTConfig struct {
 	ExpirationHours int
 }
 
+type WireGuardConfig struct {
+	Subnet     string
+	DNS        string
+	AllowedIPs string
+	Keepalive  int
+}
+
 type Config struct {
-	App      AppConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
+	App       AppConfig
+	Database  DatabaseConfig
+	JWT       JWTConfig
+	WireGuard WireGuardConfig
 }
 
 func Load() *Config {
@@ -57,6 +65,12 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret:          getEnv("JWT_SECRET", "change_me"),
 			ExpirationHours: getEnvAsInt("JWT_EXPIRATION_HOURS", 2160), // 90 days (~3 months)
+		},
+		WireGuard: WireGuardConfig{
+			Subnet:     getEnv("WG_DEFAULT_SUBNET", "10.8.0.0/24"),
+			DNS:        getEnv("WG_DNS", "1.1.1.1,8.8.8.8"),
+			AllowedIPs: getEnv("WG_ALLOWED_IPS", "0.0.0.0/0,::/0"),
+			Keepalive:  getEnvAsInt("WG_KEEPALIVE", 25),
 		},
 	}
 }
