@@ -12,6 +12,15 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { deviceApi, serverApi } from '@/services/api';
 import * as storage from '@/services/storage';
+import {
+  connectTunnelFromConfig,
+  disconnectTunnel,
+  getTunnelStatus,
+  isVpnTunnelAvailable,
+  mapTunnelStatusToConnectionStatus,
+  subscribeTunnelState,
+} from '@/services/vpn-tunnel';
+import { injectPrivateKey as injectKey } from '@/services/wg-config-parser';
 import type { Server } from '@/types/api';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
@@ -22,6 +31,7 @@ type VpnContextValue = {
   status: ConnectionStatus;
   assignedIp: string | null;
   isLoadingServers: boolean;
+  tunnelAvailable: boolean;
   error: string | null;
   selectServer: (server: Server) => void;
   connect: () => Promise<void>;
@@ -36,6 +46,10 @@ function deviceLabel(): string {
   return name.slice(0, 100);
 }
 
+function extractIp(config: string | null): string | null {
+  return config?.match(/Address = ([\d.]+)/)?.[1] ?? null;
+}
+
 export function VpnProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   const [servers, setServers] = useState<Server[]>([]);
@@ -43,7 +57,21 @@ export function VpnProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [assignedIp, setAssignedIp] = useState<string | null>(null);
   const [isLoadingServers, setIsLoadingServers] = useState(false);
+  const [tunnelAvailable, setTunnelAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    isVpnTunnelAvailable().then(setTunnelAvailable);
+  }, []);
+
+  useEffect(() => {
+    return subscribeTunnelState((event) => {
+      setStatus(mapTunnelStatusToConnectionStatus(event.status));
+      if (!event.isConnected) {
+        setAssignedIp(null);
+      }
+    });
+  }, []);
 
   const refreshServers = useCallback(async () => {
     if (!token) return;
@@ -76,20 +104,34 @@ export function VpnProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
+      const tunnelStatus = await getTunnelStatus();
+      if (tunnelStatus?.isConnected) {
+        setStatus('connected');
+        const session = await storage.getVpnSession();
+        setAssignedIp(extractIp(session.config));
+        return;
+      }
+
       const session = await storage.getVpnSession();
       if (session.deviceId && session.config) {
-        setStatus('connected');
-        const match = session.config.match(/Address = ([\d.]+)/);
-        if (match) setAssignedIp(match[1]);
+        setAssignedIp(extractIp(session.config));
       }
     })();
   }, []);
 
-  const selectServer = useCallback((server: Server) => {
-    if (status === 'connected') return;
-    setSelectedServer(server);
-    setError(null);
-  }, [status]);
+  const selectServer = useCallback(
+    (server: Server) => {
+      if (status === 'connected' || status === 'connecting') return;
+      setSelectedServer(server);
+      setError(null);
+    },
+    [status],
+  );
+
+  const startNativeTunnel = useCallback(async (config: string, privateKey?: string) => {
+    const fullConfig = privateKey ? injectKey(config, privateKey) : config;
+    await connectTunnelFromConfig(fullConfig, privateKey);
+  }, []);
 
   const connect = useCallback(async () => {
     if (!token || !selectedServer) {
@@ -101,9 +143,13 @@ export function VpnProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const session = await storage.getVpnSession();
-      if (session.deviceId && session.serverId === selectedServer.id) {
-        setAssignedIp(session.config?.match(/Address = ([\d.]+)/)?.[1] ?? null);
+      let session = await storage.getVpnSession();
+
+      if (session.deviceId && session.serverId === selectedServer.id && session.config) {
+        if (tunnelAvailable) {
+          await startNativeTunnel(session.config, session.privateKey ?? undefined);
+        }
+        setAssignedIp(extractIp(session.config));
         setStatus('connected');
         return;
       }
@@ -113,30 +159,45 @@ export function VpnProvider({ children }: { children: ReactNode }) {
         name: deviceLabel(),
       });
 
+      const configWithKey = device.private_key
+        ? injectKey(device.config, device.private_key)
+        : device.config;
+
       await storage.saveVpnSession({
         deviceId: device.id,
         serverId: selectedServer.id,
-        config: device.config,
+        config: configWithKey,
         privateKey: device.private_key,
       });
 
+      if (tunnelAvailable) {
+        await startNativeTunnel(configWithKey, device.private_key);
+      } else {
+        setError(
+          'Device provisionné. Build natif requis pour le tunnel (npx expo run:ios --device).',
+        );
+      }
+
       setAssignedIp(device.assigned_ip);
       setStatus('connected');
-
-      // Le tunnel WireGuard natif nécessite un module natif (Network Extension iOS /
-      // VpnService Android). La config est prête côté API ; l'intégration native
-      // sera branchée ici via l'agent WireGuard.
     } catch (e) {
       setStatus('disconnected');
       setError(e instanceof Error ? e.message : 'Échec de la connexion');
     }
-  }, [token, selectedServer]);
+  }, [token, selectedServer, tunnelAvailable, startNativeTunnel]);
 
   const disconnect = useCallback(async () => {
-    setStatus('disconnected');
-    setAssignedIp(null);
-    await storage.clearVpnSession();
-  }, []);
+    setStatus('connecting');
+    try {
+      if (tunnelAvailable) {
+        await disconnectTunnel();
+      }
+    } finally {
+      setStatus('disconnected');
+      setAssignedIp(null);
+      await storage.clearVpnSession();
+    }
+  }, [tunnelAvailable]);
 
   const value = useMemo(
     () => ({
@@ -145,6 +206,7 @@ export function VpnProvider({ children }: { children: ReactNode }) {
       status,
       assignedIp,
       isLoadingServers,
+      tunnelAvailable,
       error,
       selectServer,
       connect,
@@ -157,6 +219,7 @@ export function VpnProvider({ children }: { children: ReactNode }) {
       status,
       assignedIp,
       isLoadingServers,
+      tunnelAvailable,
       error,
       selectServer,
       connect,

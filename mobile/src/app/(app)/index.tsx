@@ -21,6 +21,7 @@ export default function HomeScreen() {
     status,
     assignedIp,
     isLoadingServers,
+    tunnelAvailable,
     error,
     selectServer,
     connect,
@@ -86,8 +87,9 @@ export default function HomeScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Text style={styles.hint}>
-        La configuration WireGuard est provisionnée via l’API. Le tunnel natif
-        sera activé une fois le module VPN intégré.
+        {tunnelAvailable
+          ? 'Tunnel WireGuard natif actif (Network Extension iOS / VpnService Android).'
+          : 'Expo Go ne supporte pas le VPN natif. Build requis : npm run ios ou npm run android.'}
       </Text>
     </SafeAreaView>
   );
