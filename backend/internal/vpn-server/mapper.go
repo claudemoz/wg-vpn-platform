@@ -4,7 +4,7 @@ import "time"
 
 func ToResponse(s Server) ServerResponse {
 	return ServerResponse{
-		ID:             s.ID,
+		ID:             s.ID.String(),
 		Region:         s.Region,
 		Name:           s.Name,
 		PublicEndpoint: s.PublicEndpoint,
