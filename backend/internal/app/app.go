@@ -58,6 +58,9 @@ func New(cfg *config.Config) *App {
 
 	// Routes
 	router := gin.Default()
+	if cfg.App.Env != "production" {
+		router.Use(corsMiddleware())
+	}
 	router.GET("/health", healthCheck)
 
 	v1 := router.Group("/api/v1")
